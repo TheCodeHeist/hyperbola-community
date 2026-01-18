@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:16
+    container_name: hyperbola-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"           # Host:Container
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    shm_size: 128mb           # Helps with larger queries/shared memory
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8808:8080"         # Host:Container
+    depends_on:
+      - db
+
+volumes:
+  pgdata:
+    name: hyperbola-pgdata

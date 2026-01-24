@@ -3,8 +3,20 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
+  Edit,
+  Trash2,
+} from "lucide-react";
 import { format, addDays, startOfWeek } from "date-fns";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 
 // Type for routine
 type Routine = {
@@ -29,6 +41,8 @@ type Routine = {
 
 interface WeeklyScheduleProps {
   routines: Routine[];
+  onEdit?: (routine: Routine) => void;
+  onDelete?: (id: string) => void;
 }
 
 const dayLabels = {
@@ -94,7 +108,11 @@ const generateHourMarkers = () => {
   return markers;
 };
 
-export function WeeklySchedule({ routines }: WeeklyScheduleProps) {
+export function WeeklySchedule({
+  routines,
+  onEdit,
+  onDelete,
+}: WeeklyScheduleProps) {
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [currentTimePosition, setCurrentTimePosition] = useState<number | null>(
     null,
@@ -353,31 +371,51 @@ export function WeeklySchedule({ routines }: WeeklyScheduleProps) {
                     >
                       {/* Render routines for this day */}
                       {layoutRoutines.map((routine) => (
-                        <div
-                          key={routine.id}
-                          className="absolute bg-blue-100 border border-blue-200 rounded p-2 text-xs overflow-hidden hover:bg-blue-200 transition-colors cursor-pointer shadow-sm"
-                          style={{
-                            top: `${routine.top}px`,
-                            height: `${routine.height}px`,
-                            width: routine.width,
-                            left: routine.left,
-                            zIndex: routine.zIndex,
-                          }}
-                          title={`${routine.courseName} - ${routine.classroomName} (${formatTimeRange(routine.startTime, routine.endTime)})`}
-                        >
-                          <div className="font-medium text-blue-900 truncate">
-                            {routine.courseName}
-                          </div>
-                          <div className="text-blue-700 truncate">
-                            {routine.classroomName}
-                          </div>
-                          <div className="text-blue-600 text-xs mt-1">
-                            {formatTimeRange(
-                              routine.startTime,
-                              routine.endTime,
+                        <ContextMenu key={routine.id}>
+                          <ContextMenuTrigger asChild>
+                            <div
+                              className="absolute bg-blue-100 border border-blue-200 rounded p-2 text-xs overflow-hidden hover:bg-blue-200 transition-colors cursor-pointer shadow-sm"
+                              style={{
+                                top: `${routine.top}px`,
+                                height: `${routine.height}px`,
+                                width: routine.width,
+                                left: routine.left,
+                                zIndex: routine.zIndex,
+                              }}
+                              title={`${routine.courseName} - ${routine.classroomName} (${formatTimeRange(routine.startTime, routine.endTime)})`}
+                            >
+                              <div className="font-medium text-blue-900 truncate">
+                                {routine.courseName}
+                              </div>
+                              <div className="text-blue-700 truncate">
+                                {routine.classroomName}
+                              </div>
+                              <div className="text-blue-600 text-xs mt-1">
+                                {formatTimeRange(
+                                  routine.startTime,
+                                  routine.endTime,
+                                )}
+                              </div>
+                            </div>
+                          </ContextMenuTrigger>
+                          <ContextMenuContent>
+                            {onEdit && (
+                              <ContextMenuItem onClick={() => onEdit(routine)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit
+                              </ContextMenuItem>
                             )}
-                          </div>
-                        </div>
+                            {onDelete && (
+                              <ContextMenuItem
+                                onClick={() => onDelete(routine.id)}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </ContextMenuItem>
+                            )}
+                          </ContextMenuContent>
+                        </ContextMenu>
                       ))}
                     </div>
                   );

@@ -547,7 +547,8 @@ export default function RoutinesPage() {
                     {new Set(routines.map((r) => r.classroomId)).size}
                   </span>
                   <span>
-                    Unique Courses: {new Set(routines.map((r) => r.courseId)).size}
+                    Unique Courses:{" "}
+                    {new Set(routines.map((r) => r.courseId)).size}
                   </span>
                 </div>
               </div>
@@ -555,7 +556,11 @@ export default function RoutinesPage() {
             <TabsContent value="calendar" className="mt-4">
               {/* Weekly Calendar View */}
               <div className="container mx-auto py-2">
-                <WeeklySchedule routines={routines} />
+                <WeeklySchedule
+                  routines={routines}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
               </div>
 
               {/* Summary Stats for Calendar */}
@@ -568,7 +573,8 @@ export default function RoutinesPage() {
                     {new Set(routines.map((r) => r.classroomId)).size}
                   </span>
                   <span>
-                    Unique Courses: {new Set(routines.map((r) => r.courseId)).size}
+                    Unique Courses:{" "}
+                    {new Set(routines.map((r) => r.courseId)).size}
                   </span>
                 </div>
               </div>

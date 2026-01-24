@@ -4,7 +4,7 @@ import { loadEnvConfig } from "@next/env";
 loadEnvConfig(process.cwd());
 
 export default defineConfig({
-  schema: "./lib/auth-schema.ts",
+  schema: ["./lib/auth-schema.ts", "./lib/schema.ts"],
   out: "./drizzle/migrations",
   dialect: "postgresql",
   dbCredentials: {

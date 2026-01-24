@@ -1,4 +1,14 @@
-import { Calendar, Home, Inbox, Search, Settings } from "lucide-react";
+"use client";
+
+import {
+  Calendar,
+  Home,
+  Settings,
+  Users,
+  GraduationCap,
+  BookOpen,
+  School,
+} from "lucide-react";
 
 import {
   Sidebar,
@@ -11,6 +21,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 import { UserButton } from "@daveyplate/better-auth-ui";
@@ -25,19 +36,29 @@ const items = [
     icon: Home,
   },
   {
-    title: "Inbox",
-    url: "/dashboard/inbox",
-    icon: Inbox,
+    title: "Manage Students",
+    url: "/dashboard/students",
+    icon: Users,
   },
   {
-    title: "Calendar",
-    url: "#",
+    title: "Qualifications",
+    url: "/dashboard/qualifications",
+    icon: GraduationCap,
+  },
+  {
+    title: "Courses",
+    url: "/dashboard/courses",
+    icon: BookOpen,
+  },
+  {
+    title: "Classrooms",
+    url: "/dashboard/classrooms",
+    icon: School,
+  },
+  {
+    title: "Routines",
+    url: "/dashboard/routines",
     icon: Calendar,
-  },
-  {
-    title: "Search",
-    url: "#",
-    icon: Search,
   },
   {
     title: "Settings",
@@ -47,11 +68,24 @@ const items = [
 ];
 
 export function AppSidebar() {
+  "use client";
+  const {
+    state,
+    open,
+    setOpen,
+    openMobile,
+    setOpenMobile,
+    isMobile,
+    toggleSidebar,
+  } = useSidebar();
+
   return (
-    <Sidebar variant="inset">
+    <Sidebar variant="inset" collapsible="icon">
       <SidebarHeader>
         <div className="flex items-center justify-center gap-4">
-          <div className="h-10 w-10 rounded-[min(var(--radius-md),6px)] overflow-hidden">
+          <div
+            className={`${state === "collapsed" ? "h-8 w-8 border border-primary shadow shadow-primary" : "h-10 w-10"} rounded-[min(var(--radius-md),6px)] overflow-hidden`}
+          >
             <Image
               src="/logo.svg"
               alt="Hyperbola logo"
@@ -61,7 +95,9 @@ export function AppSidebar() {
             />
           </div>
 
-          <div className="flex gap-2 items-center justify-start">
+          <div
+            className={`flex gap-2 items-center justify-start ${state === "collapsed" ? "hidden" : "flex"}`}
+          >
             <p className="text-lg font-bold md:text-xl">Hyperbola</p>
             <Badge>CE</Badge>
           </div>
@@ -89,7 +125,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-        <UserButton />
+        <UserButton size={state === "collapsed" ? "icon" : "default"} />
       </SidebarFooter>
     </Sidebar>
   );

@@ -5,9 +5,67 @@ import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { authClient } from "@/lib/auth-client";
+import Image from "next/image";
 
 export function Providers({ children }: { children: ReactNode }) {
   const router = useRouter();
+
+  const handleAvatarUpload = async (file: File): Promise<string | null> => {
+    try {
+      // Get upload URL from avatar-specific API
+      const response = await fetch("/api/avatar/upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fileName: file.name,
+          mimeType: file.type,
+          fileSize: file.size,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to get upload URL");
+      }
+
+      const { uploadUrl, fileKey } = await response.json();
+
+      // Upload file to MinIO
+      const uploadResponse = await fetch(uploadUrl, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": file.type,
+        },
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload file");
+      }
+
+      return fileKey; // Return the file key for storage
+    } catch (error) {
+      console.error("Avatar upload failed:", error);
+      return null;
+    }
+  };
+
+  const handleAvatarDelete = async (url?: string): Promise<void> => {
+    try {
+      const response = await fetch("/api/avatar/delete", {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete avatar");
+      }
+    } catch (error) {
+      console.error("Avatar delete failed:", error);
+      throw error; // Re-throw to let the UI handle the error
+    }
+  };
+
   return (
     <AuthUIProvider
       authClient={authClient}
@@ -17,6 +75,17 @@ export function Providers({ children }: { children: ReactNode }) {
         router.refresh();
       }}
       Link={Link}
+      gravatar={{
+        size: 512,
+      }}
+      avatar={{
+        upload: handleAvatarUpload,
+        delete: handleAvatarDelete,
+      }}
+      account={{
+        basePath: "/dashboard",
+        fields: ["image", "name"],
+      }}
     >
       {children}
     </AuthUIProvider>

@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Users, TrendingUp, Calendar, Plus } from "lucide-react";
+import Link from "next/link";
 
 export default function DashboardPage() {
   return (
@@ -226,10 +227,12 @@ export default function DashboardPage() {
               <BookOpen className="h-6 w-6 mb-2" />
               Create Assignment
             </Button>
-            <Button variant="outline" className="h-20 flex-col">
-              <Users className="h-6 w-6 mb-2" />
-              Manage Students
-            </Button>
+            <Link href="/dashboard/students">
+              <Button variant="outline" className="h-20 flex-col w-full">
+                <Users className="h-6 w-6 mb-2" />
+                Manage Students
+              </Button>
+            </Link>
             <Button variant="outline" className="h-20 flex-col">
               <Calendar className="h-6 w-6 mb-2" />
               Schedule Class

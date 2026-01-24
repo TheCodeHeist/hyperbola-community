@@ -24,7 +24,7 @@ export default function DashboardLayout({
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset>
-            <main className="min-h-screen flex flex-col p-4">
+            <main className="max-h-screen flex flex-col p-4 w-full overflow-hidden">
               <SidebarTrigger />
               {children}
             </main>

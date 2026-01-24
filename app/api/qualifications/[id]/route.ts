@@ -19,10 +19,10 @@ const updateQualificationSchema = z.object({
 // GET /api/qualifications/[id] - Get a specific qualification with counts
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const qualificationId = params.id;
+    const qualificationId = (await params).id;
 
     const qualificationData = await db
       .select({

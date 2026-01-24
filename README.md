@@ -1,7 +1,7 @@
 # Hyperbola Community Edition (hyperbola-community)
 
 <p align="center">
-  <img src="https://github.com/username/repo/raw/main/banner.png" alt="Project Banner" width="80%"/>
+  <img src="https://github.com/TheCodeHeist/hyperbola-community/blob/development/public/banner.png" alt="Project Banner" width="80%"/>
 </p>
 
 Hyperbola Community Edition is an open-source student management system designed to facilitate online education and course management. It provides a platform for private educators to create, manage, and deliver courses to students in a structured and interactive manner.

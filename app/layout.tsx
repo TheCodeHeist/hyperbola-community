@@ -30,10 +30,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <body className={`${inter.variable} antialiased overflow-hidden`}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <Providers>{children}</Providers>
-        </ThemeProvider>
-
+        <Providers>{children}</Providers>
         <Toaster />
       </body>
     </html>

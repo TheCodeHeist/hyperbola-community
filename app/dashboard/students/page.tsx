@@ -529,7 +529,7 @@ export default function StudentsPage() {
   };
 
   return (
-    <div className="overflow-x-hidden space-y-4 p-4 md:p-8 pt-6 max-w-full min-w-auto max-h-screen">
+    <div className="space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Students</h2>
         <div className="flex items-center space-x-2">

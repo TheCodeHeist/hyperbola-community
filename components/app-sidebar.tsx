@@ -8,6 +8,7 @@ import {
   GraduationCap,
   BookOpen,
   School,
+  CheckSquare,
 } from "lucide-react";
 
 import {
@@ -27,6 +28,7 @@ import Link from "next/link";
 import { UserButton } from "@daveyplate/better-auth-ui";
 import Image from "next/image";
 import { Badge } from "./ui/badge";
+import { useSettings } from "@/lib/settings-context";
 
 // Menu items.
 const items = [
@@ -61,6 +63,11 @@ const items = [
     icon: Calendar,
   },
   {
+    title: "Attendance",
+    url: "/dashboard/attendance",
+    icon: CheckSquare,
+  },
+  {
     title: "Settings",
     url: "#",
     icon: Settings,
@@ -78,9 +85,10 @@ export function AppSidebar() {
     isMobile,
     toggleSidebar,
   } = useSidebar();
+  const { openSettings } = useSettings();
 
   return (
-    <Sidebar variant="inset" collapsible="icon">
+    <Sidebar variant="floating" collapsible="icon">
       <SidebarHeader>
         <div className="flex items-center justify-center gap-4">
           <div
@@ -111,11 +119,25 @@ export function AppSidebar() {
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <Link href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
+                  <SidebarMenuButton
+                    asChild={item.url !== "#"}
+                    onClick={
+                      item.url === "#" ? () => openSettings() : undefined
+                    }
+                  >
+                    {item.url !== "#" ? (
+                      <Link href={item.url}>
+                        <item.icon />
+                        <span>{item.title}</span>
+                      </Link>
+                    ) : (
+                      // <button className="flex items-center w-full">
+                      <>
+                        <item.icon />
+                        <span>{item.title}</span>
+                      </>
+                      // </button>
+                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

@@ -10,6 +10,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { SettingsModal } from "@/components/settings-modal";
 
 export default function DashboardLayout({
   children,
@@ -24,11 +25,12 @@ export default function DashboardLayout({
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset>
-            <main className="max-h-screen flex flex-col p-4 w-full overflow-hidden">
+            <main className="max-h-screen flex flex-col p-4 w-full min-w-0 overflow-hidden">
               <SidebarTrigger />
               {children}
             </main>
           </SidebarInset>
+          <SettingsModal />
         </SidebarProvider>
       </SignedIn>
     </>

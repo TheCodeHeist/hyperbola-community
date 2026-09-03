@@ -146,6 +146,9 @@ export const routine = pgTable(
     courseId: text("course_id")
       .notNull()
       .references(() => course.id, { onDelete: "cascade" }),
+    conductedBy: text("conducted_by").references(() => user.id, {
+      onDelete: "set null",
+    }), // Teacher who conducts this routine
     dayOfWeek: dayOfWeekEnum("day_of_week").notNull(),
     startTime: time("start_time").notNull(),
     endTime: time("end_time").notNull(),
@@ -158,36 +161,87 @@ export const routine = pgTable(
   (table) => [
     index("routine_classroom_id_idx").on(table.classroomId),
     index("routine_course_id_idx").on(table.courseId),
+    index("routine_conducted_by_idx").on(table.conductedBy),
     index("routine_day_of_week_idx").on(table.dayOfWeek),
   ],
 );
 
-// File attachments stored in MinIO
-export const attachment = pgTable(
-  "attachment",
+// Attendance status enum
+export const attendanceStatusEnum = pgEnum("attendance_status", [
+  "present",
+  "absent",
+  "late",
+  "excused",
+  "pending", // For future sessions
+]);
+
+// Class sessions (actual instances of scheduled routines on specific dates)
+export const classSession = pgTable(
+  "class_session",
   {
-    id: serial("id").primaryKey(),
-    entityType: text("entity_type").notNull(), // e.g., "student", "user", "course", "qualification"
-    entityId: text("entity_id").notNull(), // ID of the entity this attachment belongs to
-    fileKey: text("file_key").notNull(), // MinIO S3 key/path
-    fileName: text("file_name").notNull(), // Original filename
-    mimeType: text("mime_type").notNull(), // MIME type
-    fileSize: integer("file_size"), // File size in bytes
-    uploadedBy: text("uploaded_by").references(() => user.id, {
+    id: text("id").primaryKey(),
+    routineId: text("routine_id")
+      .notNull()
+      .references(() => routine.id, { onDelete: "cascade" }),
+    sessionDate: date("session_date").notNull(), // The actual date this session occurred
+    startTime: time("start_time").notNull(), // Actual start time (might differ from routine)
+    endTime: time("end_time"), // Actual end time
+    status: text("status").notNull().default("scheduled"), // scheduled, in_progress, completed, cancelled
+    notes: text("notes"), // Session-specific notes
+    conductedBy: text("conducted_by").references(() => user.id, {
       onDelete: "set null",
-    }), // User ID who uploaded the file
-    deletedAt: timestamp("deleted_at", { withTimezone: true }), // Soft delete timestamp
-    uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+    }), // Teacher who conducted the class
+    createdBy: text("created_by").references(() => user.id, {
+      onDelete: "set null",
+    }), // User who created this session
+    createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
   (table) => [
-    index("attachment_entity_type_idx").on(table.entityType),
-    index("attachment_entity_id_idx").on(table.entityId),
-    index("attachment_uploaded_by_idx").on(table.uploadedBy),
-    index("attachment_file_key_idx").on(table.fileKey),
+    index("class_session_routine_id_idx").on(table.routineId),
+    index("class_session_date_idx").on(table.sessionDate),
+    index("class_session_status_idx").on(table.status),
+    index("class_session_conducted_by_idx").on(table.conductedBy),
+  ],
+);
+
+// Attendance records for each student in each class session
+export const attendance = pgTable(
+  "attendance",
+  {
+    id: text("id").primaryKey(),
+    classSessionId: text("class_session_id")
+      .notNull()
+      .references(() => classSession.id, { onDelete: "cascade" }),
+    studentId: text("student_id")
+      .notNull()
+      .references(() => student.id, { onDelete: "cascade" }),
+    status: attendanceStatusEnum("status").notNull().default("pending"),
+    checkInTime: timestamp("check_in_time"), // When student checked in (if applicable)
+    checkOutTime: timestamp("check_out_time"), // When student checked out (if applicable)
+    notes: text("notes"), // Individual attendance notes
+    markedBy: text("marked_by").references(() => user.id, {
+      onDelete: "set null",
+    }), // User who marked this attendance
+    markedAt: timestamp("marked_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("attendance_class_session_id_idx").on(table.classSessionId),
+    index("attendance_student_id_idx").on(table.studentId),
+    index("attendance_status_idx").on(table.status),
+    index("attendance_marked_by_idx").on(table.markedBy),
+    // Composite unique constraint to prevent duplicate attendance records
+    index("attendance_session_student_unique").on(
+      table.classSessionId,
+      table.studentId,
+    ),
   ],
 );
 
@@ -237,7 +291,7 @@ export const studentCourseEnrollmentRelations = relations(
   }),
 );
 
-export const routineRelations = relations(routine, ({ one }) => ({
+export const routineRelations = relations(routine, ({ one, many }) => ({
   classroom: one(classroom, {
     fields: [routine.classroomId],
     references: [classroom.id],
@@ -246,8 +300,47 @@ export const routineRelations = relations(routine, ({ one }) => ({
     fields: [routine.courseId],
     references: [course.id],
   }),
+  conductedByUser: one(user, {
+    fields: [routine.conductedBy],
+    references: [user.id],
+  }),
+  classSessions: many(classSession),
 }));
 
-export const attachmentRelations = relations(attachment, ({}) => ({
-  // Relations can be added based on entity types when needed
+export const classSessionRelations = relations(
+  classSession,
+  ({ one, many }) => ({
+    routine: one(routine, {
+      fields: [classSession.routineId],
+      references: [routine.id],
+    }),
+    attendances: many(attendance),
+    conductedByUser: one(user, {
+      fields: [classSession.conductedBy],
+      references: [user.id],
+    }),
+    createdByUser: one(user, {
+      fields: [classSession.createdBy],
+      references: [user.id],
+    }),
+  }),
+);
+
+export const attendanceRelations = relations(attendance, ({ one }) => ({
+  classSession: one(classSession, {
+    fields: [attendance.classSessionId],
+    references: [classSession.id],
+  }),
+  student: one(student, {
+    fields: [attendance.studentId],
+    references: [student.id],
+  }),
+  markedByUser: one(user, {
+    fields: [attendance.markedBy],
+    references: [user.id],
+  }),
 }));
+
+// export const attachmentRelations = relations(attachment, ({}) => ({
+//   // Relations can be added based on entity types when needed
+// }));

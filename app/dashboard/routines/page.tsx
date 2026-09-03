@@ -39,6 +39,7 @@ const routineSchema = z
   .object({
     classroomId: z.string().min(1, "Classroom is required"),
     courseId: z.string().min(1, "Course is required"),
+    conductedBy: z.string().optional().or(z.literal("")),
     dayOfWeek: z.enum([
       "monday",
       "tuesday",
@@ -66,11 +67,12 @@ const routineSchema = z
 // Type for form data
 type RoutineFormData = z.infer<typeof routineSchema>;
 
-// Type for routine
-type Routine = {
+// Type for routine (from API)
+type RoutineApiResponse = {
   id: string;
   classroomId: string;
   courseId: string;
+  conductedBy: string | null;
   dayOfWeek:
     | "monday"
     | "tuesday"
@@ -85,7 +87,11 @@ type Routine = {
   updatedAt: string;
   classroomName: string;
   courseName: string;
+  teacherName: string | null;
 };
+
+// Type for routine (with derived teacher name)
+type Routine = RoutineApiResponse;
 
 // Type for classroom (for dropdown)
 type Classroom = {
@@ -115,6 +121,7 @@ export default function RoutinesPage() {
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [teachers, setTeachers] = useState<{ id: string; name: string }[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -185,6 +192,22 @@ export default function RoutinesPage() {
     fetchData();
   }, []);
 
+  // Fetch teachers (users) for the conductedBy dropdown
+  useEffect(() => {
+    const fetchTeachers = async () => {
+      try {
+        const response = await fetch("/api/users");
+        if (response.ok) {
+          const data = await response.json();
+          setTeachers(data || []);
+        }
+      } catch (error) {
+        console.error("Error fetching teachers:", error);
+      }
+    };
+    fetchTeachers();
+  }, []);
+
   // Handle form submission
   const onSubmit = async (data: RoutineFormData) => {
     setIsSubmitting(true);
@@ -230,6 +253,7 @@ export default function RoutinesPage() {
     setEditingRoutine(routine);
     setValue("classroomId", routine.classroomId);
     setValue("courseId", routine.courseId);
+    setValue("conductedBy", routine.conductedBy || "");
     setValue("dayOfWeek", routine.dayOfWeek);
     setValue("startTime", routine.startTime);
     setValue("endTime", routine.endTime);
@@ -276,6 +300,14 @@ export default function RoutinesPage() {
     {
       accessorKey: "classroomName",
       header: "Classroom",
+    },
+    {
+      accessorKey: "conductedBy",
+      header: "Teacher",
+      cell: ({ row }) => {
+        const teacherName = row.original.teacherName;
+        return teacherName ? teacherName : <span className="text-muted-foreground">-</span>;
+      },
     },
     {
       accessorKey: "dayOfWeek",
@@ -431,6 +463,25 @@ export default function RoutinesPage() {
                       {errors.courseId.message}
                     </p>
                   )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="conductedBy">Teacher (Optional)</Label>
+                  <Select
+                    value={watch("conductedBy") || ""}
+                    onValueChange={(value) => setValue("conductedBy", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a teacher" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {teachers.map((teacher) => (
+                        <SelectItem key={teacher.id} value={teacher.id}>
+                          {teacher.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">

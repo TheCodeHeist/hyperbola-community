@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { routine, classroom, course } from "@/lib/schema";
+import { user } from "@/lib/auth-schema";
 import { eq, and, ne } from "drizzle-orm";
 
 interface RouteParams {
@@ -17,6 +18,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         id: routine.id,
         classroomId: routine.classroomId,
         courseId: routine.courseId,
+        conductedBy: routine.conductedBy,
         dayOfWeek: routine.dayOfWeek,
         startTime: routine.startTime,
         endTime: routine.endTime,
@@ -24,10 +26,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         updatedAt: routine.updatedAt,
         classroomName: classroom.name,
         courseName: course.name,
+        teacherName: user.name,
       })
       .from(routine)
       .innerJoin(classroom, eq(routine.classroomId, classroom.id))
       .innerJoin(course, eq(routine.courseId, course.id))
+      .leftJoin(user, eq(routine.conductedBy, user.id))
       .where(eq(routine.id, id))
       .limit(1);
 
@@ -49,9 +53,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
     const body = await request.json();
-    const { classroomId, courseId, dayOfWeek, startTime, endTime } = body;
+    const { classroomId, courseId, conductedBy, dayOfWeek, startTime, endTime } = body;
 
-    if (!classroomId || !courseId || !dayOfWeek || !startTime || !endTime) {
+    if (!classroomId || !dayOfWeek || !startTime || !endTime) {
       return NextResponse.json(
         { error: "All fields are required" },
         { status: 400 },
@@ -59,6 +63,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check for time conflicts (excluding current routine)
+    // Using half-open intervals [start, end) where end is exclusive
     const existingRoutines = await db
       .select()
       .from(routine)
@@ -71,17 +76,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         ),
       );
 
+    // Check for overlapping time using half-open interval logic
     const hasConflict = existingRoutines.some((existing) => {
       const existingStart = existing.startTime;
       const existingEnd = existing.endTime;
       const newStart = startTime;
       const newEnd = endTime;
 
-      return (
-        (newStart >= existingStart && newStart < existingEnd) ||
-        (newEnd > existingStart && newEnd <= existingEnd) ||
-        (newStart <= existingStart && newEnd >= existingEnd)
-      );
+      // Half-open interval overlap check: start1 < end2 AND start2 < end1
+      return compareTime(newStart, existingEnd) < 0 && compareTime(existingStart, newEnd) < 0;
     });
 
     if (hasConflict) {
@@ -94,11 +97,45 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Check for teacher time conflicts if conductedBy is provided
+    if (conductedBy) {
+      const existingTeacherRoutines = await db
+        .select()
+        .from(routine)
+        .where(
+          and(
+            eq(routine.conductedBy, conductedBy),
+            eq(routine.dayOfWeek, dayOfWeek),
+            ne(routine.id, id),
+          ),
+        );
+
+      const hasTeacherConflict = existingTeacherRoutines.some((existing) => {
+        const existingStart = existing.startTime;
+        const existingEnd = existing.endTime;
+        const newStart = startTime;
+        const newEnd = endTime;
+
+        return compareTime(newStart, existingEnd) < 0 && compareTime(existingStart, newEnd) < 0;
+      });
+
+      if (hasTeacherConflict) {
+        return NextResponse.json(
+          {
+            error:
+              "Time conflict: The selected teacher is already teaching another course at this time",
+          },
+          { status: 409 },
+        );
+      }
+    }
+
     const updatedRoutine = await db
       .update(routine)
       .set({
         classroomId,
         courseId,
+        conductedBy,
         dayOfWeek,
         startTime,
         endTime,
@@ -141,4 +178,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       { status: 500 },
     );
   }
+}
+
+// Helper function to compare time strings (HH:MM format)
+function compareTime(time1: string, time2: string): number {
+  return time1.localeCompare(time2);
 }

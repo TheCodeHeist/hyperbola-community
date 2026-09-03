@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { authClient } from "@/lib/auth-client";
+import { SettingsProvider } from "@/lib/settings-context";
 import Image from "next/image";
+import { ThemeProvider } from "../components/theme-provider";
 
 export function Providers({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -67,27 +69,35 @@ export function Providers({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthUIProvider
-      authClient={authClient}
-      navigate={router.push}
-      replace={router.replace}
-      onSessionChange={() => {
-        router.refresh();
-      }}
-      Link={Link}
-      gravatar={{
-        size: 512,
-      }}
-      avatar={{
-        upload: handleAvatarUpload,
-        delete: handleAvatarDelete,
-      }}
-      account={{
-        basePath: "/dashboard",
-        fields: ["image", "name"],
-      }}
-    >
-      {children}
-    </AuthUIProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <SettingsProvider>
+        <AuthUIProvider
+          authClient={authClient}
+          navigate={router.push}
+          replace={router.replace}
+          onSessionChange={() => {
+            router.refresh();
+          }}
+          Link={Link}
+          gravatar={{
+            size: 512,
+          }}
+          avatar={{
+            upload: handleAvatarUpload,
+            delete: handleAvatarDelete,
+          }}
+          account={{
+            basePath: "/dashboard",
+            fields: ["image", "name"],
+          }}
+          twoFactor={["totp"]}
+          passkey
+          changeEmail
+          deleteUser
+        >
+          {children}
+        </AuthUIProvider>
+      </SettingsProvider>
+    </ThemeProvider>
   );
 }
